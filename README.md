@@ -32,4 +32,4 @@ Custom combat attributes retained as design metadata still require their corresp
 
 ## Attribution
 
-Derived from the MUG Unit Builder v1.5 and MUG Unit Creation Guide, with Stainless Steel: Reforged / Combat Reforged rules and presentation developed for Pip. Original attribution remains in the source. No new distribution license has been assigned.
+Derived from the MUG Unit Builder v1.5 and MUG Unit Creation Guide, with Stainless Steel: Reforged / Combat Reforged rules and presentation developed for King Siegfried. Original attribution remains in the source. No new distribution license has been assigned.
