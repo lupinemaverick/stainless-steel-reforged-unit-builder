@@ -33,3 +33,18 @@ Custom combat attributes retained as design metadata still require their corresp
 ## Attribution
 
 Derived from the MUG Unit Builder v1.5 and MUG Unit Creation Guide, with Stainless Steel: Reforged / Combat Reforged rules and presentation developed for King Siegfried. Original attribution remains in the source. No new distribution license has been assigned.
+
+## Regression tests
+
+The browser tests require Node.js and Playwright. After installing the pinned development dependency, install Chromium and run:
+
+```sh
+npm install
+npx playwright install chromium
+python build.py
+npm test
+```
+
+To use an already installed compatible browser instead, set `SSR_BROWSER_EXECUTABLE` to its executable path. The suite covers Phase A Hook/Drag metadata, strict EDU exports, legacy/custom migration and rollback, plus existing quality, equipment, armor, barding, subtype and preset filtering behavior. No engine runtime is tested or implemented.
+
+Phase A changes only untouched bill/greatsword attribute defaults. Hook/Drag remains a **Custom proposal — no engine runtime** with unspecified chance/lockout and no animation ID. See `docs/handoffs/Phase_A_Implementation_Report_2026-10-13.md` for verification and migration details.

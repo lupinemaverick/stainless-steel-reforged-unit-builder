@@ -4,6 +4,7 @@ const ATTRIBUTE_CONTROLS = [
   {key:'spear',label:'Spear',native:true},{key:'light_spear',label:'Light spear',native:true},
   {key:'long_pike',label:'Long pike',native:true},{key:'spear_bonus',label:'spear_bonus_X',magnitude:4,native:true},
   {key:'rend',label:'Rend',magnitude:2},{key:'stagger',label:'Stagger'},
+  {key:'hook_drag',label:'Hook / Drag',metadataOnly:true},
   {key:'duelist',label:'Duelist',magnitude:2},{key:'pikebreaker',label:'Pikebreaker',magnitude:1},
   {key:'batter',label:'Batter',magnitude:2},
   {key:'crush',label:'Crush',magnitude:''},{key:'hemorrhage',label:'Hemorrhage',magnitude:''},
@@ -13,6 +14,7 @@ const ATTRIBUTE_CONTROLS = [
   ...['fire','anti_horse'].map(key=>({key,label:key,unverified:true}))
 ];
 const ATTRIBUTE_DEFINITIONS = {
+  hook_drag:'Custom proposal — no engine runtime: a hooked head may catch or pull a shield, limb or opponent off balance. A defender forward-step / stumble is a visual candidate only; no model-level trigger, animation asset, root motion or movement API has been verified. Chance and lockout are unspecified. Separate from shield-block-only Stagger; no assumed double-hit, unhorse or shield bypass.',
   ap:'Armor piercing: ignores 50% of the target’s effective Armor stat, rounded up. Defense Skill and Shield remain separate.',
   sp:'Shield piercing: ignores 50% of the target’s Shield stat, rounded up.',
   spear:'Adds +8 Attack against cavalry and −4 Attack against infantry. When braced, reflects full cavalry charge damage back onto charging horses.',
@@ -44,10 +46,11 @@ for(const slot of ['pri','sec']) {
   raw.type='hidden';oldLabel.remove();
   const block=addFields(anchor, `<strong style="display:block;margin-top:12px">${slot}_attr · active-weapon attributes</strong>
     <span class="hint">Select attributes, then set X where applicable. Native descriptions follow your SS6.4 attribute reference (12 October 2026). Custom proposals remain separate. Effects apply only to this active weapon; conditional bonuses are not added again to ordinary stats.</span>
-    <div class="checks" style="margin-top:8px">${ATTRIBUTE_CONTROLS.map(def=>`<label title="${ATTRIBUTE_DEFINITIONS[def.key]}"><input type="checkbox" id="${slot}_tag_${def.key}" onchange="updateWeaponAttributes('${slot}')" /> ${def.label}${def.native?'':def.unverified?' · unverified':' · proposal'}</label>`).join('')}</div>
+    <div class="checks" style="margin-top:8px">${ATTRIBUTE_CONTROLS.map(def=>`<label title="${ATTRIBUTE_DEFINITIONS[def.key]}"><input type="checkbox" id="${slot}_tag_${def.key}" onchange="updateWeaponAttributes('${slot}')" /> ${def.label}${def.native?'':def.metadataOnly?' · Custom proposal — no engine runtime':def.unverified?' · unverified':' · proposal'}</label>`).join('')}</div>
     <div class="grid" style="margin-top:8px">${ATTRIBUTE_CONTROLS.filter(def=>def.magnitude!==undefined).map(def=>`<label id="${slot}_value_wrap_${def.key}" hidden>${def.label} · X${def.magnitude===''?' (optional variant)':''}${def.key==='spear_bonus'?`<select id="${slot}_value_spear_bonus" onchange="updateWeaponAttributes('${slot}')">${[2,4,6,8,10,12].map(n=>`<option${n===4?' selected':''}>${n}</option>`).join('')}</select>`:`<input type="number" id="${slot}_value_${def.key}" value="${def.magnitude}" min="0" step="1" oninput="updateWeaponAttributes('${slot}')" />`}</label>`).join('')}
       ${ATTRIBUTE_CONTROLS.map(def=>`<div class="full attribute-definition" id="${slot}_definition_${def.key}" hidden><strong>${def.label}</strong> · ${ATTRIBUTE_DEFINITIONS[def.key]}</div>`).join('')}
       <div class="full" id="${slot}_settings_rend" hidden><span class="hint">On an applicable attack, ignore up to X target Armor: max(0, Armor − X). Defense Skill and Shield are unchanged. No persistent Armor damage.</span></div>
+      <div class="full" id="${slot}_settings_hook_drag" hidden><label>Visual candidate (description only)<input type="text" id="${slot}_hook_visual" value="defender forward-step / stumble" oninput="recalc()" /></label><span class="hint">Custom proposal — no engine runtime. Trigger, chance, lockout and animation ID are unverified or unspecified. No model movement is implemented.</span></div>
       <div class="full" id="${slot}_settings_spear_bonus" hidden><span class="hint">Conditional Attack against mounted opponents. EDU vocabulary supports X = 2, 4, 6, 8, 10 or 12. Bracing and charge mechanics remain separate.</span></div>
       <div class="full" id="${slot}_settings_duelist" hidden><span class="hint">Add X Attack only against infantry classified as neither spear/pike nor missile infantry. No reduction to Armor or Shield.</span></div>
       <div class="full" id="${slot}_settings_stagger" hidden><p class="hint">Stagger is checked only when an eligible melee attack is stopped specifically by Shield. It is not checked on every hit, a skill parry, or an existing armor-hit reaction. The blocked attack remains stopped. A 100% chance means every eligible shield-block outcome, subject to lockout and configured resistance.</p><div class="grid">

@@ -1,0 +1,110 @@
+{
+  "schema": "ssr-codex-weapon-archetypes-handoff",
+  "version": 1,
+  "prepared": "2026-10-13",
+  "scope": "builder metadata, defaults, catalogue decisions; no M2EX runtime implementation",
+  "source_branch": "main",
+  "implementation_gate": "engine hooks and animations not verified",
+  "approved_decisions": [
+    {
+      "id": "heavy_crossbow_unified",
+      "action": "preserve_one_heavy_archetype",
+      "current_builder_preset_id": "arbalest",
+      "category": "crossbow",
+      "aliases": [
+        "heavy crossbow",
+        "windlass-spanned",
+        "cranequin-spanned"
+      ],
+      "do_not_split_by_spanning_mechanism": true,
+      "notes": "Represent differences through existing projectile/Attack/reload parameters, not duplicate heavy presets. Preserve existing arbalest ID."
+    },
+    {
+      "id": "bill_hooked_control",
+      "action": "change_builtin_default_only",
+      "category_id": "bill",
+      "old_default_attr": "stagger, pikebreaker_1",
+      "new_default_attr": "stagger, hook_drag",
+      "base_attack_unchanged": true,
+      "notes": "Keep Stagger shield-block semantics unchanged. Hook/Drag is a separate design-only effect, not a verified runtime hook."
+    },
+    {
+      "id": "greatsword_no_pikebreaker",
+      "action": "change_builtin_default_only",
+      "category_id": "greatsword",
+      "old_default_attr": "duelist_2, pikebreaker_1",
+      "new_default_attr": "duelist_2",
+      "base_attack_unchanged": true,
+      "notes": "Pikebreaker remains available as an explicit custom effect elsewhere; do not auto-assign to greatswords."
+    }
+  ],
+  "proposed_custom_effect": {
+    "tag": "hook_drag",
+    "effect_family": "control",
+    "scope": "active_weapon",
+    "target_scope": "individual_defender_model",
+    "implementation_status": "design_metadata_only",
+    "trigger": "unverified; do not imply an engine event exists",
+    "trigger_candidate": "eligible hooked-weapon contact",
+    "chance_percent": null,
+    "lockout_seconds": null,
+    "animation_id": null,
+    "visual_candidate": "defender forward-step / stumble, subject to verified animation and root motion",
+    "physical_displacement_implemented": false,
+    "unhorse_implemented": false,
+    "shield_bypass_implemented": false,
+    "status": "proposal"
+  },
+  "candidate_backlog": [
+    {
+      "id": "mace_head_geometry",
+      "status": "research_supported_balance_pending",
+      "category": "mace",
+      "forms": [
+        "solid/knobbed mace",
+        "flanged/projecting armor mace"
+      ],
+      "notes": "Separate by contact geometry, not regional name. Do not assign unapproved numeric changes or overwrite legacy mace."
+    },
+    {
+      "id": "short_flexible_impact",
+      "status": "conditional_animation_and_evidence_gate",
+      "form": "kiścień / kisten-like short flexible impact weapon",
+      "notes": "Distinct from long staff flail. No assumed shield bypass."
+    },
+    {
+      "id": "staff_flail",
+      "status": "conditional_animation_gate",
+      "notes": "No shield-bypass or historical ubiquity claim."
+    },
+    {
+      "id": "braced_couched_lance",
+      "status": "candidate_runtime_and_loadout_gate",
+      "category": "lance",
+      "notes": "Lance rest/armor support is a distinct bracing system; do not add native spear tag."
+    },
+    {
+      "id": "developed_halberd_hook",
+      "status": "conditional_weaker_hook_variant",
+      "category": "halberd",
+      "notes": "Do not give every halberd a strong bill-style hook effect."
+    }
+  ],
+  "preserve": [
+    "core Defense Skill 4 and revised small weapon handling",
+    "Soldier Quality independent of Equipment Grade",
+    "two-handed offhand suppression and signed shield/skill tradeoffs",
+    "existing Pikebreaker, Batter, Rend, Duelist and shield-block Stagger metadata semantics",
+    "primary/secondary preset category filtering and None secondary",
+    "project JSON v1 import/export and user-customized presets",
+    "native EDU export whitelist and custom effect JSON separation",
+    "existing heavy crossbow projectile/Attack/reload fields"
+  ],
+  "prohibited_claims": [
+    "M2EX provides a verified per-hit animation trigger",
+    "forward-step animation necessarily moves the model/root",
+    "hook effects automatically unhorse cavalry or bypass shields",
+    "Pikebreaker represents documented greatsword or bill shaft-cutting",
+    "cranequin and windlass demand distinct heavy crossbow presets"
+  ]
+}

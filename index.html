@@ -2419,7 +2419,7 @@ const OFFHANDS = {
 };
 const CANONICAL_SUBTYPES = ['Guards','Hybrid','Aggressive','Reckless','Fanatic','Bloc','Raider','Mounted','Engineer','Mercenary','Garrison','Command'];
 const NATIVE_WEAPON_TAGS = new Set(['ap','sp','spear','light_spear','long_pike','spear_bonus_2','spear_bonus_4','spear_bonus_6','spear_bonus_8','spear_bonus_10','spear_bonus_12','prec','thrown','launching','area','bp','short_pike']);
-const CUSTOM_TAG = /^(rend(?:_\d+)?|stagger(?:_\d+)?|duelist(?:_\d+)?|duel(?:_\d+)?|pikebreaker(?:_\d+)?|batter(?:_\d+)?|crush(?:_\w+)?|hemorrhage(?:_\w+)?|hamstring(?:_\w+)?|cleave(?:_\w+)?|linebreaker(?:_\w+)?|stalwart(?:_\w+)?)$/i;
+const CUSTOM_TAG = /^(hook_drag|rend(?:_\d+)?|stagger(?:_\d+)?|duelist(?:_\d+)?|duel(?:_\d+)?|pikebreaker(?:_\d+)?|batter(?:_\d+)?|crush(?:_\w+)?|hemorrhage(?:_\w+)?|hamstring(?:_\w+)?|cleave(?:_\w+)?|linebreaker(?:_\w+)?|stalwart(?:_\w+)?)$/i;
 const tags = text => (text || '').split(',').map(t=>t.trim()).filter(Boolean);
 function exportableAttrs(text, weapon) {
   return tags(text).filter(t => weapon ? NATIVE_WEAPON_TAGS.has(t) : !CUSTOM_TAG.test(t) && t !== 'lock_morale' && !['campaign_movement_horse_flag','engineer_flag','garrison_flag','bloc_flag','raider_flag'].includes(t)).join(', ');
@@ -2503,6 +2503,7 @@ function weaponEffects(slot) {
   const effects=tags(val(slot+'_attr')).map(tag=>{
     const m=tag.match(/_(\d+)$/), magnitude=m?Number(m[1]):null;
     const e={tag,scope:slot+'_active_weapon',status:NATIVE_WEAPON_TAGS.has(tag)?'EDU vocabulary':'custom proposal',magnitude,trigger:'configured implementation required',target:'configured eligibility required'};
+    if(tag==='hook_drag')Object.assign(e,{status:'Custom proposal — no engine runtime',effect_family:'control',target:'individual defending model',trigger:'unverified: eligible hooked-weapon contact',trigger_status:'engine event not verified',chance_percent:null,lockout_seconds:null,implementation_status:'design_metadata_only',visual_candidate:{description:val(slot+'_hook_visual')||'defender forward-step / stumble',animation_id:null,root_motion_verified:false},physical_displacement_implemented:false,unhorse_implemented:false,shield_bypass_implemented:false});
     if(/^rend_/.test(tag)) Object.assign(e,{trigger:'applicable attack',target:'otherwise applicable target Armor',formula:'max(0, Armor - X)',persistent:false,ap_order:'AP first using the supplied SS6.4 reference (ignore 50% effective Armor, rounded up), then rend; custom combination remains a proposal'});
     if(/^duel(?:ist)?_/.test(tag)) Object.assign(e,{trigger:'attack against eligible opponent',target:'infantry excluding spear/pike and missile infantry',classifier:'opponent unit category/role; not active weapon',stat:'conditional Attack'});
     if(/^spear_bonus_/.test(tag)) Object.assign(e,{trigger:'mounted matchup',target:'mounted opponent',stat:'conditional Attack',interpretation:'draft values pending implementation verification'});
@@ -2654,6 +2655,7 @@ const ATTRIBUTE_CONTROLS = [
   {key:'spear',label:'Spear',native:true},{key:'light_spear',label:'Light spear',native:true},
   {key:'long_pike',label:'Long pike',native:true},{key:'spear_bonus',label:'spear_bonus_X',magnitude:4,native:true},
   {key:'rend',label:'Rend',magnitude:2},{key:'stagger',label:'Stagger'},
+  {key:'hook_drag',label:'Hook / Drag',metadataOnly:true},
   {key:'duelist',label:'Duelist',magnitude:2},{key:'pikebreaker',label:'Pikebreaker',magnitude:1},
   {key:'batter',label:'Batter',magnitude:2},
   {key:'crush',label:'Crush',magnitude:''},{key:'hemorrhage',label:'Hemorrhage',magnitude:''},
@@ -2663,6 +2665,7 @@ const ATTRIBUTE_CONTROLS = [
   ...['fire','anti_horse'].map(key=>({key,label:key,unverified:true}))
 ];
 const ATTRIBUTE_DEFINITIONS = {
+  hook_drag:'Custom proposal — no engine runtime: a hooked head may catch or pull a shield, limb or opponent off balance. A defender forward-step / stumble is a visual candidate only; no model-level trigger, animation asset, root motion or movement API has been verified. Chance and lockout are unspecified. Separate from shield-block-only Stagger; no assumed double-hit, unhorse or shield bypass.',
   ap:'Armor piercing: ignores 50% of the target’s effective Armor stat, rounded up. Defense Skill and Shield remain separate.',
   sp:'Shield piercing: ignores 50% of the target’s Shield stat, rounded up.',
   spear:'Adds +8 Attack against cavalry and −4 Attack against infantry. When braced, reflects full cavalry charge damage back onto charging horses.',
@@ -2694,10 +2697,11 @@ for(const slot of ['pri','sec']) {
   raw.type='hidden';oldLabel.remove();
   const block=addFields(anchor, `<strong style="display:block;margin-top:12px">${slot}_attr · active-weapon attributes</strong>
     <span class="hint">Select attributes, then set X where applicable. Native descriptions follow your SS6.4 attribute reference (12 October 2026). Custom proposals remain separate. Effects apply only to this active weapon; conditional bonuses are not added again to ordinary stats.</span>
-    <div class="checks" style="margin-top:8px">${ATTRIBUTE_CONTROLS.map(def=>`<label title="${ATTRIBUTE_DEFINITIONS[def.key]}"><input type="checkbox" id="${slot}_tag_${def.key}" onchange="updateWeaponAttributes('${slot}')" /> ${def.label}${def.native?'':def.unverified?' · unverified':' · proposal'}</label>`).join('')}</div>
+    <div class="checks" style="margin-top:8px">${ATTRIBUTE_CONTROLS.map(def=>`<label title="${ATTRIBUTE_DEFINITIONS[def.key]}"><input type="checkbox" id="${slot}_tag_${def.key}" onchange="updateWeaponAttributes('${slot}')" /> ${def.label}${def.native?'':def.metadataOnly?' · Custom proposal — no engine runtime':def.unverified?' · unverified':' · proposal'}</label>`).join('')}</div>
     <div class="grid" style="margin-top:8px">${ATTRIBUTE_CONTROLS.filter(def=>def.magnitude!==undefined).map(def=>`<label id="${slot}_value_wrap_${def.key}" hidden>${def.label} · X${def.magnitude===''?' (optional variant)':''}${def.key==='spear_bonus'?`<select id="${slot}_value_spear_bonus" onchange="updateWeaponAttributes('${slot}')">${[2,4,6,8,10,12].map(n=>`<option${n===4?' selected':''}>${n}</option>`).join('')}</select>`:`<input type="number" id="${slot}_value_${def.key}" value="${def.magnitude}" min="0" step="1" oninput="updateWeaponAttributes('${slot}')" />`}</label>`).join('')}
       ${ATTRIBUTE_CONTROLS.map(def=>`<div class="full attribute-definition" id="${slot}_definition_${def.key}" hidden><strong>${def.label}</strong> · ${ATTRIBUTE_DEFINITIONS[def.key]}</div>`).join('')}
       <div class="full" id="${slot}_settings_rend" hidden><span class="hint">On an applicable attack, ignore up to X target Armor: max(0, Armor − X). Defense Skill and Shield are unchanged. No persistent Armor damage.</span></div>
+      <div class="full" id="${slot}_settings_hook_drag" hidden><label>Visual candidate (description only)<input type="text" id="${slot}_hook_visual" value="defender forward-step / stumble" oninput="recalc()" /></label><span class="hint">Custom proposal — no engine runtime. Trigger, chance, lockout and animation ID are unverified or unspecified. No model movement is implemented.</span></div>
       <div class="full" id="${slot}_settings_spear_bonus" hidden><span class="hint">Conditional Attack against mounted opponents. EDU vocabulary supports X = 2, 4, 6, 8, 10 or 12. Bracing and charge mechanics remain separate.</span></div>
       <div class="full" id="${slot}_settings_duelist" hidden><span class="hint">Add X Attack only against infantry classified as neither spear/pike nor missile infantry. No reduction to Armor or Shield.</span></div>
       <div class="full" id="${slot}_settings_stagger" hidden><p class="hint">Stagger is checked only when an eligible melee attack is stopped specifically by Shield. It is not checked on every hit, a skill parry, or an existing armor-hit reaction. The blocked attack remains stopped. A 100% chance means every eligible shield-block outcome, subject to lockout and configured resistance.</p><div class="grid">
@@ -3411,6 +3415,78 @@ importProjectData=function(input){
     f.offhand_rules_revision=OFFHAND_RULES_REVISION;
   }
   return importBeforeOffhandRevision(data);
+};
+
+/* Phase A: metadata only; migrate recognizable untouched defaults, never custom packets. */
+const WEAPON_PHASE_A_REVISION='2026-10-13-a1';
+const PHASE_A_ATTRS={bill:['stagger, pikebreaker_1','stagger, hook_drag'],greatsword:['duelist_2, pikebreaker_1','duelist_2']};
+const PHASE_A_OLD_CATEGORIES=JSON.parse(JSON.stringify(WEAPON_CATEGORIES));
+const PHASE_A_OLD_PRESETS={pri:JSON.parse(JSON.stringify(PRI_PRESETS)),sec:JSON.parse(JSON.stringify(SEC_PRESETS))};
+function samePhaseADefault(a,b){
+  if(a===b)return true;
+  if(!a||!b||typeof a!=='object'||typeof b!=='object')return false;
+  const keys=Object.keys(a),other=Object.keys(b);
+  return keys.length===other.length&&keys.every(k=>Object.hasOwn(b,k)&&samePhaseADefault(a[k],b[k]));
+}
+function phaseAPresetUntouched(slot,id,p){
+  return [PHASE_A_OLD_PRESETS[slot][id],LEGACY_WEAPON_DEFAULTS[slot][id]].some(old=>samePhaseADefault(p,old));
+}
+for(const [id,[old,fresh]]of Object.entries(PHASE_A_ATTRS)){
+  WEAPON_CATEGORIES[id].attr=fresh;
+  for(const store of [PRI_PRESETS,SEC_PRESETS])for(const [key,p]of Object.entries(store))if(presetWeaponCategory(key,p)===id&&p.attr===old)p.attr=fresh;
+}
+function migratePhaseAStores(data){
+  if(!data||data._weapon_phase_a_revision===WEAPON_PHASE_A_REVISION)return data;
+  for(const slot of ['pri','sec'])for(const [id,p]of Object.entries(data[slot]||{})){
+    const category=presetWeaponCategory(id,p),change=PHASE_A_ATTRS[category];
+    if(change&&p.attr===change[0]&&phaseAPresetUntouched(slot,id,p))p.attr=change[1];
+  }
+  for(const [id,p]of Object.entries(data.weapon_categories||{})){
+    const change=PHASE_A_ATTRS[id];
+    if(change&&[PHASE_A_OLD_CATEGORIES[id],LEGACY_CATEGORY_DEFAULTS[id]].some(old=>samePhaseADefault(p,old)))p.attr=change[1];
+  }
+  data._weapon_phase_a_revision=WEAPON_PHASE_A_REVISION;return data;
+}
+const collectBeforePhaseA=editorCollectAll;
+editorCollectAll=function(){return {...collectBeforePhaseA(),_weapon_phase_a_revision:WEAPON_PHASE_A_REVISION};};
+const fieldsBeforePhaseA=projectFields;
+projectFields=function(){return {...fieldsBeforePhaseA(),weapon_phase_a_revision:WEAPON_PHASE_A_REVISION};};
+const loadBeforePhaseA=editorLoadPersisted;
+editorLoadPersisted=function(){
+  try{const raw=localStorage.getItem(LS_KEY);if(raw)localStorage.setItem(LS_KEY,JSON.stringify(migratePhaseAStores(JSON.parse(raw))));}catch(e){console.warn('Phase A preset migration unavailable:',e);}
+  loadBeforePhaseA();
+};
+function phaseAFieldsUntouched(f,slot,p){
+  if(!p||valuelessPhaseAOverride(f[slot+'_effects_json']))return false;
+  const fields={base_atk:'atk',base_charge:'charge',weapon_type:'wtype',tech:'tech',damage:'dmg',sound:'sound',weapon:'name',delay:'delay',handling:'handling',heat:'heat'};
+  for(const [suffix,key]of Object.entries(fields)){
+    if(!Object.hasOwn(f,slot+'_'+suffix))continue;
+    const value=f[slot+'_'+suffix],choices=[p[key],p[key+'_mounted']].filter(v=>v!==undefined);
+    if(choices.length&&!choices.some(v=>String(v)===String(value)))return false;
+  }
+  const category=PHASE_A_OLD_CATEGORIES[presetWeaponCategory(f[slot+'_preset'],p)];
+  if(Object.hasOwn(f,slot+'_twohand')&&Boolean(f[slot+'_twohand'])!==Boolean(p.twohand??category?.twohand))return false;
+  return true;
+}
+function valuelessPhaseAOverride(value){return typeof value==='string'&&value.trim()!==''&&value.trim()!=='[]';}
+const importBeforePhaseA=importProjectData;
+importProjectData=function(input){
+  const data=JSON.parse(JSON.stringify(input)),f=data.fields;
+  // Reject unknown identities before any restore wrapper can recalculate invalid state.
+  if(f&&Object.hasOwn(f,'unit_category')&&!CATEGORY_BASE[f.unit_category])throw Error('Project has an unknown archetype.');
+  if(f&&f.weapon_phase_a_revision!==WEAPON_PHASE_A_REVISION){
+    for(const slot of ['pri','sec']){
+      const id=f[slot+'_preset'],old=PHASE_A_OLD_PRESETS[slot][id],stored=data.presets?.[slot]?.[id],category=f[slot+'_category']||presetWeaponCategory(id,old),change=PHASE_A_ATTRS[category];
+      const categoryStore=data.weapon_categories?.[category]||data.presets?.weapon_categories?.[category];
+      const categoryClean=!categoryStore||[PHASE_A_OLD_CATEGORIES[category],LEGACY_CATEGORY_DEFAULTS[category]].some(p=>samePhaseADefault(categoryStore,p));
+      // A custom slot or customized preset/category stays explicitly configured.
+      if(change&&f[slot+'_attr']===change[0]&&old&&(!stored||phaseAPresetUntouched(slot,id,stored))&&categoryClean&&[old,LEGACY_WEAPON_DEFAULTS[slot][id]].some(p=>phaseAFieldsUntouched(f,slot,p)))f[slot+'_attr']=change[1];
+    }
+    f.weapon_phase_a_revision=WEAPON_PHASE_A_REVISION;
+  }
+  if(data.presets)migratePhaseAStores(data.presets);
+  if(data.weapon_categories)migratePhaseAStores({weapon_categories:data.weapon_categories,_weapon_phase_a_revision:input.fields?.weapon_phase_a_revision===WEAPON_PHASE_A_REVISION?WEAPON_PHASE_A_REVISION:undefined});
+  return importBeforePhaseA(data);
 };
 
 // Initial setup
