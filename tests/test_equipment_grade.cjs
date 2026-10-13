@@ -1,0 +1,20 @@
+const {chromium}=require('playwright');
+const path=require('path'),assert=require('assert');
+(async()=>{
+ const b=await chromium.launch({headless:true,...(process.env.SSR_BROWSER_EXECUTABLE?{executablePath:process.env.SSR_BROWSER_EXECUTABLE}:{})}),p=await b.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));
+ await p.goto('file:///'+path.join(__dirname,'../index.html').replaceAll('\\','/'));
+ const checks=await p.evaluate(()=>{
+  const out=[],eq=(a,b,n)=>{if(JSON.stringify(a)!==JSON.stringify(b))throw Error(n+': '+JSON.stringify(a)+' != '+JSON.stringify(b));out.push(n)},set=(id,v)=>{const e=document.getElementById(id);if(e.type==='checkbox'||e.type==='radio')e.checked=v;else e.value=v};
+  for(const n of CANONICAL_SUBTYPES)set('trait_'+n.toLowerCase(),false);
+  for(const [id,v]of Object.entries({unit_category:'Martial Nobility',equipment_grade:'common',category:'infantry',quality:'Average',pri_weapon_type:'melee',pri_base_atk:12,sec_base_atk:6,sec_weapon_type:'melee',armour:10,arm_agi:0,offhand:'legacy',shield_type:'heater',shield:5,cost_construct:1000,cost_upkeep:200,core_defense_skill:4,pri_handling:0,proficiency_def:0}))set(id,v);
+  set('pri_twohand',false);set('sec_twohand',false);
+  const base=compute().unit;eq([base.pri_attack,base.sec_attack,base.armour,base.shield],[14,8,10,5],'Common noble has training only');
+  const expected={artisan:[16,10,12,7,1150,220],high:[15,9,11,6,1075,210],common:[14,8,10,5,1000,200],munition:[13,7,9,4,800,170],poor:[13,7,9,4,1000,220]};
+  for(const [g,want]of Object.entries(expected)){set('equipment_grade',g);const u=compute().unit;eq([u.pri_attack,u.sec_attack,u.armour,u.shield,u.cost_construct,u.cost_upkeep],want,g+' stats and costs');eq(u.def_skill,base.def_skill,g+' preserves Skill');eq(u.pri_charge,base.pri_charge,g+' preserves Charge');eq(compute().unit.cost_construct,want[4],g+' repeat compute stable');const edu=toEdu(u);eq(+edu.split('\n').find(l=>l.startsWith('stat_pri ')).trim().split(/\s+/)[1].replace(',',''),want[0],g+' native Attack');eq(edu.split('\n').find(l=>l.startsWith('stat_cost ')).includes(`${want[4]}, ${want[5]}`),true,g+' native costs');}
+  set('equipment_grade','common');set('unit_category','Royal Retinue');recalc();eq([val('equipment_grade'),document.getElementById('equipment_grade').disabled,compute().unit.pri_attack],['artisan',true,16],'Royal Retinue locks Artisan');set('equipment_grade','poor');eq(compute().unit.equipment_grade.id,'artisan','Royal computation enforces lock');set('unit_category','Urban Militia');recalc();eq(document.getElementById('equipment_grade').disabled,false,'Other archetypes unlock selector');
+  set('equipment_grade','artisan');set('pri_twohand',true);set('sec_twohand',true);eq(compute().unit.shield,0,'No shield bonus on two-handed defense');set('pri_twohand',false);set('shield',0);set('shield_type','none');eq(compute().unit.shield,0,'No shield created from nothing');set('armour',0);eq(compute().unit.armour,0,'Flesh receives no armor');
+  set('category','cavalry');set('horse_type','stallion');set('horse_barding','plate');set('armour',10);eq(compute().unit.armour,20,'Rider grade plus barding exactly once');set('armour',0);eq(compute().unit.armour,8,'Barding is not graded as worn armor');
+  const fields=projectFields();fields.unit_category='Martial Nobility';fields.equipment_grade='munition';importProjectData({schema:'combat-reforged-builder',version:1,fields});eq(val('equipment_grade'),'munition','Project retains grade');delete fields.equipment_grade;importProjectData({schema:'combat-reforged-builder',version:1,fields});eq(val('equipment_grade'),'common','Legacy project defaults Common');fields.unit_category='Royal Retinue';fields.equipment_grade='poor';importProjectData({schema:'combat-reforged-builder',version:1,fields});eq(val('equipment_grade'),'artisan','Imported Royal enforces Artisan');resetToJerusalem();eq(val('equipment_grade'),'common','Reset restores Common');
+  return out;
+ });assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:checks.length,errors}));await b.close();
+})().catch(e=>{console.error(e);process.exit(1)});

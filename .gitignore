@@ -4,3 +4,6 @@ node_modules/
 .env
 .env.*
 .openai/
+
+tests/*.png
+tests/*results.json

@@ -28,7 +28,7 @@ const OFFHANDS = {
 };
 const CANONICAL_SUBTYPES = ['Guards','Hybrid','Aggressive','Reckless','Fanatic','Bloc','Raider','Mounted','Engineer','Mercenary','Garrison','Command'];
 const NATIVE_WEAPON_TAGS = new Set(['ap','sp','spear','light_spear','long_pike','spear_bonus_2','spear_bonus_4','spear_bonus_6','spear_bonus_8','spear_bonus_10','spear_bonus_12','prec','thrown','launching','area','bp','short_pike']);
-const CUSTOM_TAG = /^(rend(?:_\d+)?|stagger(?:_\d+)?|duelist(?:_\d+)?|duel(?:_\d+)?|pikebreaker(?:_\d+)?|batter(?:_\d+)?|crush(?:_\w+)?|hemorrhage(?:_\w+)?|hamstring(?:_\w+)?|cleave(?:_\w+)?|linebreaker(?:_\w+)?|stalwart(?:_\w+)?)$/i;
+const CUSTOM_TAG = /^(hook_drag|rend(?:_\d+)?|stagger(?:_\d+)?|duelist(?:_\d+)?|duel(?:_\d+)?|pikebreaker(?:_\d+)?|batter(?:_\d+)?|crush(?:_\w+)?|hemorrhage(?:_\w+)?|hamstring(?:_\w+)?|cleave(?:_\w+)?|linebreaker(?:_\w+)?|stalwart(?:_\w+)?)$/i;
 const tags = text => (text || '').split(',').map(t=>t.trim()).filter(Boolean);
 function exportableAttrs(text, weapon) {
   return tags(text).filter(t => weapon ? NATIVE_WEAPON_TAGS.has(t) : !CUSTOM_TAG.test(t) && t !== 'lock_morale' && !['campaign_movement_horse_flag','engineer_flag','garrison_flag','bloc_flag','raider_flag'].includes(t)).join(', ');
@@ -112,6 +112,7 @@ function weaponEffects(slot) {
   const effects=tags(val(slot+'_attr')).map(tag=>{
     const m=tag.match(/_(\d+)$/), magnitude=m?Number(m[1]):null;
     const e={tag,scope:slot+'_active_weapon',status:NATIVE_WEAPON_TAGS.has(tag)?'EDU vocabulary':'custom proposal',magnitude,trigger:'configured implementation required',target:'configured eligibility required'};
+    if(tag==='hook_drag')Object.assign(e,{status:'Custom proposal — no engine runtime',effect_family:'control',target:'individual defending model',trigger:'unverified: eligible hooked-weapon contact',trigger_status:'engine event not verified',chance_percent:null,lockout_seconds:null,implementation_status:'design_metadata_only',visual_candidate:{description:val(slot+'_hook_visual')||'defender forward-step / stumble',animation_id:null,root_motion_verified:false},physical_displacement_implemented:false,unhorse_implemented:false,shield_bypass_implemented:false});
     if(/^rend_/.test(tag)) Object.assign(e,{trigger:'applicable attack',target:'otherwise applicable target Armor',formula:'max(0, Armor - X)',persistent:false,ap_order:'AP first using the supplied SS6.4 reference (ignore 50% effective Armor, rounded up), then rend; custom combination remains a proposal'});
     if(/^duel(?:ist)?_/.test(tag)) Object.assign(e,{trigger:'attack against eligible opponent',target:'infantry excluding spear/pike and missile infantry',classifier:'opponent unit category/role; not active weapon',stat:'conditional Attack'});
     if(/^spear_bonus_/.test(tag)) Object.assign(e,{trigger:'mounted matchup',target:'mounted opponent',stat:'conditional Attack',interpretation:'draft values pending implementation verification'});

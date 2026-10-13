@@ -1,0 +1,85 @@
+const {chromium}=require('playwright');
+const path=require('path'),fs=require('fs'),assert=require('assert');
+(async()=>{
+ const b=await chromium.launch({headless:true,...(process.env.SSR_BROWSER_EXECUTABLE?{executablePath:process.env.SSR_BROWSER_EXECUTABLE}:{})});
+ const p=await b.newPage({viewport:{width:1500,height:1000}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
+ await p.goto('file:///'+path.join(__dirname,'../index.html').replaceAll('\\','/'));
+ const results=await p.evaluate(()=>{
+  const rows=[];const check=(actual,expected,label)=>{if(JSON.stringify(actual)!==JSON.stringify(expected))throw Error(label+' expected '+JSON.stringify(expected)+' got '+JSON.stringify(actual));rows.push({label,actual,expected});};
+  const set=(id,value)=>{if(/^(pri|sec)_preset$/.test(id)){const slot=id.slice(0,3),store=slot==='pri'?PRI_PRESETS:SEC_PRESETS;if(store[value]&&value!=='none'){document.getElementById(slot+'_category').value=presetWeaponCategory(value,store[value]);rebuildPresetOptions(slot,value);}}const e=document.getElementById(id);if(e.type==='checkbox'||e.type==='radio')e.checked=!!value;else e.value=value;};
+  const parsed=(u,key)=>{const line=toEdu(u).split('\n').find(line=>line.startsWith(key+' '));if(!line)throw Error('Missing exported '+key);return line.slice(key.length).trim().split(',').map(s=>s.trim());};
+  const setup=()=>{
+   set('equipment_grade','common');
+   for(const name of CANONICAL_SUBTYPES)set('trait_'+name.toLowerCase(),false);
+   for(const [id,value]of Object.entries({type:'audit_fixture',unit_category:'Urban Militia',category:'infantry',class:'heavy',quality:'Average',pri_category:'sword_cut',pri_base_atk:10,pri_base_charge:4,pri_delay:80,pri_weapon_type:'melee',pri_weapon:'audit_sword',pri_sound:'sword',pri_missile:'no',pri_range:100,pri_ammo:40,sec_category:'sword_cut',sec_base_atk:6,sec_base_charge:2,sec_delay:60,sec_weapon_type:'melee',sec_weapon:'audit_sidearm',armour:4,arm_agi:0,arm_heat:0,pri_heat:0,sec_heat:0,mount_heat:0,proficiency_def:'',armor_mean_mass:0,climate_heat:0,bow_culture:'',terrain_specialty:'',armour_weight:'medium',origin:'Western European',offhand:'empty',offhand_def:0,offhand_shield:0,extra_attrs:'',f_types:'square',morale_baseline:'',discipline_baseline:'',training_override:'',soldier_count:'',project_profile:'SSR',pri_attr:'',sec_attr:'',pri_effects_json:'',sec_effects_json:''}))set(id,value);
+   set('pri_twohand',false);set('sec_twohand',false);set('bible_formation_auto',true);set('cav_charger',true);
+   for(const slot of ['pri','sec']){delete document.getElementById(slot+'_handling').dataset.inheritedHandling;for(const suffix of ['base_charge','delay','heat'])delete document.getElementById(slot+'_'+suffix).dataset.inheritedValue;set(slot+'_handling',slot==='pri'?0:1);}
+   recalc();
+  };
+  const qualities=['Exceptional','Outstanding','Superior','Average','Inferior'];
+  const footAttack=[13,12,11,10,8],footDefense=[6,5,5,4,4],cavAttack=[17,15,13,11,7],cavDefense=[6,5,5,4,4],delays=[50,60,70,80,100],heats=[-3,-2,-1,0,1];
+  for(const mounted of [false,true])for(let i=0;i<5;i++){
+   setup();set('category',mounted?'cavalry':'infantry');set('quality',qualities[i]);recalc();const u=compute().unit,a=parsed(u,'stat_pri'),d=parsed(u,'stat_pri_armour'),s=parsed(u,'stat_sec');
+   check(+a[0],(mounted?cavAttack:footAttack)[i],(mounted?'Mounted':'Foot')+' '+qualities[i]+' exported Attack');
+   check(+d[1],(mounted?cavDefense:footDefense)[i],(mounted?'Mounted':'Foot')+' '+qualities[i]+' exported Defense Skill');
+   check(+a[9],delays[i],qualities[i]+' exported primary delay');
+   check(+s[0],(mounted?cavAttack:footAttack)[i]-4,qualities[i]+' exported secondary Attack');
+   check(+s[9],delays[i]-20,qualities[i]+' exported secondary delay');
+   check(+a[1],4,qualities[i]+' does not invent Charge from quality Attack');
+   check(u.heat,heats[i],qualities[i]+' quality heat');
+   check(+a[10],1,'Native skeleton compensation factor');
+  }
+  setup();set('quality','Exceptional');set('class','missile');set('pri_weapon_type','missile');set('pri_sound','bow');set('pri_missile','arrow');recalc();let u=compute().unit;
+  check([u.pri_attack,u.pri_range,u.sec_attack,u.sec_delay,u.def_skill],[12,130,6,60,5],'Exceptional archer: ranged bonus and Average secondary melee');
+  check(+parsed(u,'stat_pri_armour')[1],5,'Ranged EDU uses defending secondary handling');
+  check(u.pri_delay,80,'Missile timing not altered by melee delay quality');
+  set('trait_hybrid',true);recalc();u=compute().unit;
+  check([u.sec_attack,u.sec_delay,u.def_skill,u.pri_ammo],[9,30,7,20],'Hybrid restores Exceptional secondary quality and halves base ammunition once');
+  set('trait_hybrid',false);set('bow_culture','mongolian');recalc();u=compute().unit;check([u.pri_attack,u.pri_range],[13,140],'Mongolian bow culture Attack/range');
+  set('bow_culture','anatolian');recalc();u=compute().unit;check([u.pri_attack,u.pri_range],[12,140],'Anatolian bow culture range only');
+  set('bow_culture','welsh');recalc();u=compute().unit;check([u.pri_attack,u.pri_range],[13,130],'Welsh bow culture Attack only');
+  setup();set('quality','Exceptional');set('class','skirmish');set('pri_weapon_type','thrown');set('pri_sound','spear');set('pri_missile','javelin');recalc();u=compute().unit;
+  check([u.pri_attack,u.pri_range,u.sec_attack,u.sec_delay,u.def_skill],[14,69,7,50,6],'Exceptional javelin skirmisher uses +3 Attack, +15 range then −40%, Superior sidearm');
+  setup();set('quality','Exceptional');set('class','missile');set('pri_weapon_type','missile');set('pri_sound','crossbow');set('pri_missile','bolt');recalc();u=compute().unit;check([u.pri_attack,u.pri_range],[10,130],'Crossbow quality range without bow Attack bonus');
+  setup();set('category','cavalry');set('pri_category','lance');set('pri_weapon','lance');set('cav_lancer',true);recalc();u=compute().unit;check([u.pri_attack,u.pri_charge,u.def_skill,u.heat,u.sec_charge],[10,6,4,-1,2],'Lancer modifiers; charge applies to lance, not sword sidearm');
+  set('cav_brawler',true);recalc();u=compute().unit;check([u.pri_attack,u.pri_charge,u.def_skill,u.heat],[12,2,5,1],'Brawler Attack/Charge/Defense/heat');
+  setup();set('unit_category','Royal Retinue');set('quality','Average');recalc();u=compute().unit;check([u.pri_attack,u.armour,u.def_skill,u.heat],[14,6,7,-2],'Royal Retinue Attack/Armor/skill/heat destinations');
+  check(tags(u.attributes).includes('general_unit')&&tags(u.attributes).includes('free_upkeep_unit'),true,'Royal attributes emitted');
+  setup();set('unit_category','Martial Nobility');recalc();check(tags(compute().unit.attributes).includes('command'),false,'Martial Nobility does not automatically grant command');set('trait_command',true);recalc();check(tags(compute().unit.attributes).includes('command'),true,'Command subtype emits native command');
+  setup();set('pri_preset','arming_sword');applyPriPreset();check(num('pri_handling'),1,'Foot sword preset loads one handling Skill bonus');
+  set('category','cavalry');recalc();check(num('pri_handling'),1,'Inherited sword handling follows mounted context');
+  set('pri_handling',12);recalc();set('category','infantry');recalc();check(num('pri_handling'),12,'Manual weapon handling override survives context changes');
+  set('category','cavalry');set('pri_preset','horseman_mace');applyPriPreset();check([val('pri_category'),num('pri_base_atk'),val('pri_attr'),num('pri_handling')],['mace',4,'rend_2, batter_2',0],'Horseman mace inherits latest category and mounted handling');
+  setup();set('pri_preset','arming_sword');applyPriPreset();check([num('pri_base_charge'),num('pri_delay')],[3,40],'Foot sword loads actual bible Charge/delay');set('category','cavalry');recalc();check([num('pri_base_charge'),num('pri_delay')],[4,45],'Inherited sword Charge/delay follows mounted context');
+  setup();set('category','cavalry');populateWeaponSelects();set('pri_preset','mounted_heavy_recurve_bow');applyPriPreset();check([num('pri_base_atk'),num('pri_range'),num('pri_ammo')],[4,140,40],'Mounted heavy recurve preset uses mounted table rather than foot heavy composite');
+  setup();populateWeaponSelects();set('pri_preset','mace');applyPriPreset();set('sec_preset','mace');applySecPreset();check(num('sec_heat'),1,'Secondary preset supplies carried heat');recalc();check(compute().unit.heat,2,'Both carried mace heat contributions exported once');
+  setup();set('climate_heat',-2);set('quality','Exceptional');recalc();check(compute().unit.heat,-5,'Climate heat stacks with quality heat');
+  setup();set('armor_mean_mass',3);recalc();check(+parsed(compute().unit,'soldier')[3],1,'Armor mass conversion reaches soldier EDU');
+  setup();set('pri_category','pike');set('pri_twohand',true);set('sec_base_atk','');set('pri_attr','long_pike, spear_bonus_8');recalc();u=compute().unit;
+  check([u.scrub,u.sand,u.forest,u.snow],[-1,-2,-2,0],'Pike terrain penalties applied without double-counting two-handed forest penalty');
+  check([u.soldier_count,u.stat_stl,u.soldier_mass],[100,25,1.05],'Pike size/formation mass path');
+  check([u.formation_close_s2s,u.formation_close_f2b,u.formation_loose_s2s,u.formation_loose_f2b],[1.2,1.2,2.4,2.4],'Pike bible formation exported');
+  setup();set('quality','Inferior');recalc();u=compute().unit;check([u.formation_close_s2s,u.formation_close_f2b,u.formation_loose_s2s,u.formation_loose_f2b],[1.4,1.2,2.8,2.4],'Inferior infantry formation');
+  setup();set('pri_weapon_type','missile');set('pri_sound','crossbow');set('pri_missile','bolt');recalc();u=compute().unit;check([u.formation_close_s2s,u.formation_close_f2b,u.formation_loose_s2s,u.formation_loose_f2b],[1.4,1.4,1.4,1.4],'Crossbow formation');
+  setup();set('armour_weight','light');set('armour',17);recalc();u=compute().unit;check([u.scrub,u.sand,u.forest,u.snow],[1,-1,2,1],'Terrain uses chosen weight rather than Armor value threshold');
+  set('terrain_specialty','forest');recalc();check(compute().unit.forest,3,'Terrain specialty +1');
+  setup();set('soldier_count',99);recalc();check(compute().unit.soldier_count,99,'Manual soldier count retained');
+  setup();set('class','spear');recalc();u=compute().unit;check([parsed(u,'class')[0],u.soldier_count],['spearmen',80],'Internal spear role emits native spearmen class and bible count');
+  setup();set('armour_preset','double_mail');applyArmourPreset();set('armour_layer1','gambeson');set('armour_layer2','mail_haubergon');applyArmourLayers();u=compute().unit;check([u.armour,u.def_skill,u.heat],[12,5,7],'Base armor and both doublets stack Armor, skill and heat into EDU');
+  const shields=[['none','wooden',0,4,0],['buckler','wooden',2,5,0],['round','wooden',3,5,1],['kite','reinforced',6,4,3],['heater','reinforced',5,4,1],['pavise','reinforced',8,4,4]];
+  for(const [type,material,shield,skill,heat]of shields){setup();set('offhand','legacy');set('shield_type',type);set('shield_material',material);applyShield();u=compute().unit;check([u.shield,u.def_skill,u.heat],[shield,skill,heat],type+' legacy shield/material contributions');}
+  setup();set('category','cavalry');set('offhand','legacy');set('shield_type','pavise');recalc();check([val('shield_type'),compute().unit.shield],['none',0],'Mounted classification removes ineligible pavise');
+  setup();set('category','cavalry');set('horse_type','stallion');set('horse_origin','anatolia');set('horse_barding','padded');set('cav_lancer',true);applyMount();u=compute().unit;check([u.mount_design.speed,u.mount_design.mass,u.mount_design.stamina_level],[1.05,2.85,1],'Mount auxiliary breed/barding/style combination');
+  check([u.mount_design.barding_armor,+parsed(u,'stat_sec_armour')[0]],[2,0],'Barding armor is not misrepresented as effective ridden-horse stat_sec_armour');
+  setup();return rows;
+ });
+ await p.locator('#f_cs').fill('3.3');assert.equal(await p.locator('#bible_formation_auto').isChecked(),false);await p.locator('#quality').selectOption('Exceptional');assert.equal(await p.locator('#f_cs').inputValue(),'3.3');
+ await p.evaluate(()=>{const presets=JSON.parse(JSON.stringify(editorCollectAll()));presets.pri.arming_sword.charge=9;presets.pri.arming_sword.delay=77;for(const id of Object.keys(presets.pri))if(id.startsWith('mounted_')&&id!=='mounted_spear')delete presets.pri[id];localStorage.setItem(LS_KEY,JSON.stringify(presets));});
+ await p.reload();
+ const migrated=await p.evaluate(()=>({customCharge:PRI_PRESETS.arming_sword.charge,customDelay:PRI_PRESETS.arming_sword.delay,mountedRows:['mounted_short_bow','mounted_recurve_bow','mounted_heavy_recurve_bow','mounted_crossbow','mounted_javelin'].every(id=>!!PRI_PRESETS[id])}));
+ assert.deepEqual(migrated,{customCharge:9,customDelay:77,mountedRows:true});
+ await p.evaluate(()=>localStorage.removeItem(LS_KEY));
+ assert.deepEqual(errors,[]);
+ fs.writeFileSync(path.join(__dirname,'bible-audit-results.json'),JSON.stringify({source:'https://docs.google.com/document/d/1px5bj3c6quhwxZufuXAf7KrpTcaBWgM3IdYd8Mn1_Wc/edit?tab=t.y3hn4rbkhbz1',assertions:results,formationOverrideChecks:2,presetMigrationChecks:3,pageErrors:errors},null,2));
+ console.log(JSON.stringify({bibleAssertions:results.length,formationOverrideChecks:2,presetMigrationChecks:3,pageErrors:errors}));await b.close();
+})().catch(e=>{console.error(e.stack);process.exit(1);});
