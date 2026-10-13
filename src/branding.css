@@ -1,0 +1,40 @@
+/* Stainless Steel: Reforged palette, drawn from the supplied release artwork. */
+:root {
+  color-scheme: dark;
+  --bg: #151211;
+  --panel: #24201e;
+  --panel2: #302925;
+  --border: #51443b;
+  --text: #eee2d2;
+  --muted: #baac9e;
+  --accent: #e99583;
+  --accent2: #d8c5aa;
+  --good: #d6cec0;
+  --warn: #e6ab6c;
+  --input: #191615;
+  --focus: #cc534f66;
+  --crimson: #9f302e;
+}
+header {
+  background: linear-gradient(115deg, #30221f, #1b1715 70%);
+  border-bottom: 2px solid var(--crimson);
+}
+header h1 { color: var(--text); }
+.preview-pane { background: #171412; }
+button, .btn { background: var(--crimson); color: var(--text); }
+button.secondary { background: var(--panel2); color: var(--text); }
+button.ghost { background: transparent; color: var(--accent2); }
+.checks input, input[type="checkbox"], input[type="radio"] { accent-color: #b6423c; }
+.tabs button, .editor-nav button { background: transparent; color: var(--muted); }
+.tabs button.active, .editor-nav button.active { color: var(--text); border-bottom-color: var(--crimson); }
+input::placeholder, textarea::placeholder { color: #9d8e80; opacity: 1; }
+legend { color: var(--accent2); }
+summary { color: var(--accent2); }
+.attribute-definition {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--crimson);
+  background: var(--input);
+  line-height: 1.55;
+}
+/* Retain the original grid, pane sizing, tabs, and responsive breakpoint. */
