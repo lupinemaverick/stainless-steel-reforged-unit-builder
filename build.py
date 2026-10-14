@@ -98,7 +98,7 @@ s=re.sub(r'(<select id="armour_sound"[^>]*>).*?(</select>)',lambda m:m[1]+'<opti
 s=s.replace('document.getElementById("armour_sound").value = p.sound;','document.getElementById("armour_sound").value = normalizeArmourSound(p.sound);')
 s=s.replace('</style>','  [hidden] { display: none !important; }\n</style>',1)
 s=s.replace('</style>',(root/'branding.css').read_text(encoding='utf-8')+'\n</style>',1)
-extension='\n'.join((root/name).read_text(encoding='utf-8') for name in ['reforged.js','weapon_controls.js','attribute_reference.js','audit_rules.js','combat_rules.js','preset_filters.js','equipment_grade.js','armor_loadouts.js','offhand_revision.js','weapon_phase_a.js'])
+extension='\n'.join((root/name).read_text(encoding='utf-8') for name in ['reforged.js','weapon_controls.js','attribute_reference.js','audit_rules.js','combat_rules.js','preset_filters.js','equipment_grade.js','armor_loadouts.js','offhand_revision.js','weapon_phase_a.js','unit_attribute_controls.js'])
 s=s.replace('// Initial setup\n', extension+'\n// Initial setup\n')
 s=s.replace('updateMountVisibility();\npopulateWeaponSelects();', 'updateMountVisibility();\ndocument.getElementById("pri_category").value = "lance";\ndocument.getElementById("sec_category").value = "sword_cut";\npopulateWeaponSelects();')
 s=s.replace('Reforged weapon category · editable proposal v0.1','Reforged weapon category · editable defaults')

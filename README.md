@@ -48,3 +48,5 @@ npm test
 To use an already installed compatible browser instead, set `SSR_BROWSER_EXECUTABLE` to its executable path. The suite covers Phase A Hook/Drag metadata, strict EDU exports, legacy/custom migration and rollback, plus existing quality, equipment, armor, barding, subtype and preset filtering behavior. No engine runtime is tested or implemented.
 
 Phase A changes only untouched bill/greatsword attribute defaults. Hook/Drag remains a **Custom proposal — no engine runtime** with unspecified chance/lockout and no animation ID. See `docs/handoffs/Phase_A_Implementation_Report_2026-10-13.md` for verification and migration details.
+
+Overall unit attributes are selected in grouped checkboxes above Extra attributes. The free-text field remains available for unlisted tags. Command stays in Unit Subtypes, sapping controls mirror each other, and attributes inherited from archetypes are shown as such. Forest hiding defaults to foot infantry but an explicit opt-out is saved. Desert Raider and Forest Ambusher each add +2 to the respective `stat_ground` value; their names are not emitted as unit attributes.
