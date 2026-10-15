@@ -2661,8 +2661,7 @@ const ATTRIBUTE_CONTROLS = [
   {key:'crush',label:'Crush',magnitude:''},{key:'hemorrhage',label:'Hemorrhage',magnitude:''},
   {key:'hamstring',label:'Hamstring',magnitude:''},{key:'cleave',label:'Cleave',magnitude:''},
   {key:'linebreaker',label:'Linebreaker',magnitude:''},{key:'stalwart',label:'Weapon Stalwart',magnitude:''},
-  ...['prec','thrown','launching','area','bp','short_pike'].map(key=>({key,label:key,native:true})),
-  ...['fire','anti_horse'].map(key=>({key,label:key,unverified:true}))
+  ...['prec','thrown','launching','area','bp','short_pike'].map(key=>({key,label:key,native:true}))
 ];
 const ATTRIBUTE_DEFINITIONS = {
   hook_drag:'Custom proposal — no engine runtime: a hooked head may catch or pull a shield, limb or opponent off balance. A defender forward-step / stumble is a visual candidate only; no model-level trigger, animation asset, root motion or movement API has been verified. Chance and lockout are unspecified. Separate from shield-block-only Stagger; no assumed double-hit, unhorse or shield bypass.',
@@ -2697,7 +2696,7 @@ for(const slot of ['pri','sec']) {
   raw.type='hidden';oldLabel.remove();
   const block=addFields(anchor, `<strong style="display:block;margin-top:12px">${slot}_attr · active-weapon attributes</strong>
     <span class="hint">Select attributes, then set X where applicable. Native descriptions follow your SS6.4 attribute reference (12 October 2026). Custom proposals remain separate. Effects apply only to this active weapon; conditional bonuses are not added again to ordinary stats.</span>
-    <div class="checks" style="margin-top:8px">${ATTRIBUTE_CONTROLS.map(def=>`<label title="${ATTRIBUTE_DEFINITIONS[def.key]}"><input type="checkbox" id="${slot}_tag_${def.key}" onchange="updateWeaponAttributes('${slot}')" /> ${def.label}${def.native?'':def.metadataOnly?' · Custom proposal — no engine runtime':def.unverified?' · unverified':' · proposal'}</label>`).join('')}</div>
+    <div class="checks" style="margin-top:8px">${ATTRIBUTE_CONTROLS.map(def=>`<label title="${ATTRIBUTE_DEFINITIONS[def.key]}"><input type="checkbox" id="${slot}_tag_${def.key}" onchange="updateWeaponAttributes('${slot}')" /> ${def.label}</label>`).join('')}</div>
     <div class="grid" style="margin-top:8px">${ATTRIBUTE_CONTROLS.filter(def=>def.magnitude!==undefined).map(def=>`<label id="${slot}_value_wrap_${def.key}" hidden>${def.label} · X${def.magnitude===''?' (optional variant)':''}${def.key==='spear_bonus'?`<select id="${slot}_value_spear_bonus" onchange="updateWeaponAttributes('${slot}')">${[2,4,6,8,10,12].map(n=>`<option${n===4?' selected':''}>${n}</option>`).join('')}</select>`:`<input type="number" id="${slot}_value_${def.key}" value="${def.magnitude}" min="0" step="1" oninput="updateWeaponAttributes('${slot}')" />`}</label>`).join('')}
       ${ATTRIBUTE_CONTROLS.map(def=>`<div class="full attribute-definition" id="${slot}_definition_${def.key}" hidden><strong>${def.label}</strong> · ${ATTRIBUTE_DEFINITIONS[def.key]}</div>`).join('')}
       <div class="full" id="${slot}_settings_rend" hidden><span class="hint">On an applicable attack, ignore up to X target Armor: max(0, Armor − X). Defense Skill and Shield are unchanged. No persistent Armor damage.</span></div>
