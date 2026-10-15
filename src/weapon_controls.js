@@ -4,7 +4,7 @@ const ATTRIBUTE_CONTROLS = [
   {key:'spear',label:'Spear',native:true},{key:'light_spear',label:'Light spear',native:true},
   {key:'long_pike',label:'Long pike',native:true},{key:'spear_bonus',label:'spear_bonus_X',magnitude:4,native:true},
   {key:'rend',label:'Rend',magnitude:2},{key:'stagger',label:'Stagger'},
-  {key:'hook_drag',label:'Hook / Drag',metadataOnly:true},
+  {key:'hook_drag',label:'Hook',metadataOnly:true},
   {key:'duelist',label:'Duelist',magnitude:2},{key:'pikebreaker',label:'Pikebreaker',magnitude:1},
   {key:'batter',label:'Batter',magnitude:2},
   {key:'crush',label:'Crush',magnitude:''},{key:'hemorrhage',label:'Hemorrhage',magnitude:''},

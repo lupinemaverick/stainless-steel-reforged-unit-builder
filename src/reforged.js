@@ -31,7 +31,7 @@ const NATIVE_WEAPON_TAGS = new Set(['ap','sp','spear','light_spear','long_pike',
 const CUSTOM_TAG = /^(hook_drag|rend(?:_\d+)?|stagger(?:_\d+)?|duelist(?:_\d+)?|duel(?:_\d+)?|pikebreaker(?:_\d+)?|batter(?:_\d+)?|crush(?:_\w+)?|hemorrhage(?:_\w+)?|hamstring(?:_\w+)?|cleave(?:_\w+)?|linebreaker(?:_\w+)?|stalwart(?:_\w+)?)$/i;
 const tags = text => (text || '').split(',').map(t=>t.trim()).filter(Boolean);
 function exportableAttrs(text, weapon) {
-  return tags(text).filter(t => weapon ? NATIVE_WEAPON_TAGS.has(t) : !CUSTOM_TAG.test(t) && t !== 'lock_morale' && !['campaign_movement_horse_flag','engineer_flag','garrison_flag','bloc_flag','raider_flag'].includes(t)).join(', ');
+  return tags(text).filter(t => weapon ? NATIVE_WEAPON_TAGS.has(t) || CUSTOM_TAG.test(t) || t === 'hook' : !CUSTOM_TAG.test(t) && t !== 'lock_morale' && !['campaign_movement_horse_flag','engineer_flag','garrison_flag','bloc_flag','raider_flag'].includes(t)).map(t => weapon && t === 'hook_drag' ? 'hook' : t).join(', ');
 }
 function addFields(anchor, html) {
   const node = document.createElement('div'); node.className='full'; node.innerHTML=html;
